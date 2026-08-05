@@ -279,8 +279,15 @@ jobs:
           else
             echo "credential: default GITHUB_TOKEN (no FLEET_DISPATCH_PAT secret) — dispatches raise NO events, so the chain stops after one hop"
           fi
-          # GITHUB_EVENT_NAME rather than an ${{ }} expression: a default env
-          # var cannot be interpolated into this script.
+          # The default env var, NOT a workflow expression: nothing from the
+          # event is interpolated into this script.
+          #
+          # (And never write an empty expression — even inside a bash comment.
+          # GitHub scans the whole `run:` block for them and rejects the file
+          # with "An expression was expected"; `yaml.safe_load` in the upload
+          # gate does not, so this shipped a workflow that would not parse and
+          # the supervisor stopped ticking entirely until it was re-uploaded.
+          # The gate now checks for it.)
           echo "woken by: ${GITHUB_EVENT_NAME}"
 
           dry=""
