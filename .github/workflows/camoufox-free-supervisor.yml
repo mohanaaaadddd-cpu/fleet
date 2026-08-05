@@ -77,8 +77,10 @@ run-name: supervisor (target=${{ vars.CAMOUFOX_FLEET_TARGET }} enabled=${{ vars.
 #  the `schedule:` cron, which has been measured firing every 65-139 min on
 #  mature accounts and once not at all for 2h35m.
 #
-#  Measured, not inferred (2026-08-05, account `mohanaaaadddd-cpu/fleet`, the
-#  two arms 15m42s apart in one window, credential the only varying factor):
+#  Measured, not inferred (2026-08-05, one fleet account, the two arms 15m42s
+#  apart in one window, the credential the only varying factor — the write-up
+#  is kept off this file because it ships into every fleet repo, and the repos
+#  are public):
 #
 #    arm G  producer dispatched with GITHUB_TOKEN  -> NO supervisor run of any
 #                                                     kind in the 6m14s after it
@@ -102,16 +104,20 @@ run-name: supervisor (target=${{ vars.CAMOUFOX_FLEET_TARGET }} enabled=${{ vars.
 #    threading two credentials through fleet_master.py buys nothing, and the
 #    scope dispatch needs already covers the reads.
 #
-#  ── RECORD THE EXPIRY HERE WHEN YOU ISSUE ONE. An expiring PAT kills the
-#    chain again for a new reason, and the symptom is identical to the bug this
-#    replaces: everything reads healthy while the fleet quietly decays.
+#  ── RECORD THIS REPO'S PAT EXPIRY HERE WHEN YOU ISSUE ONE, and keep the
+#    four-account ledger in the ticket, NOT here: this file is uploaded verbatim
+#    into every fleet repo and those repos are public, so a list of the sibling
+#    accounts in it would cross-link them to anyone who reads one.
 #
-#      | account                   | repo  | PAT issued | PAT expires |
-#      |---------------------------|-------|------------|-------------|
-#      | mohanaaaadddd-cpu         | fleet |            |             |
-#      | ystgebkxigebj-sketch      | 2     |            |             |
-#      | Ahmed0mon                 | fleet |            |             |
-#      | muradmuradsarasara-spec   | fleet |            |             |
+#      PAT issued: ____________   expires: ____________
+#
+#    An EXPIRED PAT is the one failure this fallback does not absorb — it is
+#    non-empty, so it is preferred, and every API call the planner makes then
+#    401s. That is loud rather than silent: `fleet_master.py` raises on a
+#    non-2xx and the whole tick goes RED, which breaks the "every prior run
+#    reads success" signature that made the original decay invisible. Nothing is
+#    dispatched while it lasts, so treat a red supervisor as urgent; deleting
+#    the secret restores the old behaviour immediately.
 #
 #  ── ROLLOUT is per-account and incremental — the fallback is what makes a
 #    partial rollout safe. Prove it on one account across two full producer
